@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Explorer</title>
+    
+    <!-- Meta tags for SEO -->
+    <meta name="description" content="Explore, search, filter, and share Google BigQuery release notes and updates. Select updates and tweet them instantly.">
+    <meta name="keywords" content="Google Cloud, BigQuery, Release Notes, Database, Data Warehouse, Twitter Share">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <span class="dot yellow"></span>
+                        <span class="dot blue"></span>
+                        <span class="dot red"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>BigQuery <span>Release Notes</span></h1>
+                        <p class="subtitle">Stay updated with Google BigQuery feed changes</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="status-indicator" id="status-indicator">
+                    <span class="status-dot green" id="status-dot"></span>
+                    <span class="status-text" id="status-text">Checking feed...</span>
+                </div>
+                
+                <button class="btn btn-primary btn-refresh" id="btn-refresh" title="Refresh Release Notes">
+                    <i data-lucide="rotate-cw" class="icon-refresh"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Toolbar & Filter Area -->
+        <section class="toolbar-section">
+            <div class="search-bar">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search release notes (e.g. Gemini, SQL, JSON, columns)..." autocomplete="off">
+                <button id="clear-search" class="clear-search-btn" style="display: none;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Filter by type:</span>
+                <div class="filter-pills" id="filter-pills">
+                    <button class="filter-pill active" data-type="all">
+                        <span>All</span>
+                        <span class="pill-count" id="count-all">0</span>
+                    </button>
+                    <button class="filter-pill" data-type="feature">
+                        <span class="dot-indicator bg-feature"></span>
+                        <span>Features</span>
+                        <span class="pill-count" id="count-feature">0</span>
+                    </button>
+                    <button class="filter-pill" data-type="issue">
+                        <span class="dot-indicator bg-issue"></span>
+                        <span>Issues</span>
+                        <span class="pill-count" id="count-issue">0</span>
+                    </button>
+                    <button class="filter-pill" data-type="changed">
+                        <span class="dot-indicator bg-changed"></span>
+                        <span>Changes</span>
+                        <span class="pill-count" id="count-changed">0</span>
+                    </button>
+                    <button class="filter-pill" data-type="other">
+                        <span class="dot-indicator bg-other"></span>
+                        <span>Other</span>
+                        <span class="pill-count" id="count-other">0</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Multi-select Bar (Sticky Action Bar when items selected) -->
+        <div class="selection-action-bar" id="selection-bar">
+            <div class="selection-info">
+                <i data-lucide="check-circle" class="text-primary"></i>
+                <span id="selection-count-text">1 update selected</span>
+            </div>
+            <div class="selection-actions">
+                <button class="btn btn-secondary" id="btn-clear-selection">Clear</button>
+                <button class="btn btn-tweet" id="btn-tweet-selection">
+                    <i data-lucide="twitter"></i>
+                    <span>Tweet Selection</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Loading State -->
+            <div class="state-container" id="loading-state">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                </div>
+                <h3>Fetching release notes</h3>
+                <p>Reading feed from Google Cloud Documentation...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div class="state-container error-state" id="error-state" style="display: none;">
+                <div class="error-icon-container">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <h3>Failed to load release notes</h3>
+                <p id="error-message">Unknown error occurred.</p>
+                <button class="btn btn-secondary mt-4" id="btn-retry">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>Retry Fetch</span>
+                </button>
+            </div>
+            
+            <!-- Empty State -->
+            <div class="state-container empty-state" id="empty-state" style="display: none;">
+                <div class="empty-icon-container">
+                    <i data-lucide="search-code"></i>
+                </div>
+                <h3>No updates match your filters</h3>
+                <p>Try adjusting your search keywords or select a different filter tag.</p>
+                <button class="btn btn-secondary mt-4" id="btn-reset-filters">Reset All Filters</button>
+            </div>
+            
+            <!-- Feed Content (Rendered dynamically) -->
+            <div class="feed-grid" id="feed-container" style="display: none;">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Antigravity BigQuery Release Notes Web App &copy; 2026. Data fetched from <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener noreferrer">GCP Atom Feed</a>.</p>
+        </footer>
+    </div>
+    
+    <!-- Tweet Composer Modal -->
+    <div class="modal-backdrop" id="tweet-modal" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="twitter" class="twitter-blue-icon"></i>
+                    <h2>Tweet Composer</h2>
+                </div>
+                <button class="close-btn" id="btn-close-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="preview-original" id="composer-original-text">
+                    <!-- Original update content goes here -->
+                </div>
+                
+                <div class="composer-container">
+                    <label for="tweet-textarea" class="composer-label">Edit your Tweet:</label>
+                    <textarea id="tweet-textarea" class="composer-textarea" rows="5" placeholder="What's happening?"></textarea>
+                    
+                    <div class="composer-footer">
+                        <div class="character-counter" id="char-counter">
+                            <span id="char-count">0</span>/280
+                        </div>
+                        <div class="auto-hashtags">
+                            <span class="tag-helper" data-tag="#BigQuery">#BigQuery</span>
+                            <span class="tag-helper" data-tag="#GCP">#GCP</span>
+                            <span class="tag-helper" data-tag="#DataAnalytics">#DataAnalytics</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-cancel-tweet">Cancel</button>
+                <button class="btn btn-tweet-post" id="btn-publish-tweet">
+                    <i data-lucide="send"></i>
+                    <span>Share on X / Twitter</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast notification container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
